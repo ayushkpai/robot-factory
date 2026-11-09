@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#050a12" />
+  <meta name="description" content="Robot Factory — a fast-paced 45-second robot sorting arcade game." />
+  <title>Robot Factory — 45 Second Sorting Shift</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="stage.css" />
+  <link rel="stylesheet" href="machines.css" />
+  <link rel="stylesheet" href="screens.css" />
+</head>
+<body>
+  <div id="app" data-rule="color">
+    <div class="page-glow" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" role="img">
+            <defs>
+              <linearGradient id="brandSteel" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#e8f3ff"/>
+                <stop offset="1" stop-color="#8ea4bf"/>
+              </linearGradient>
+            </defs>
+            <path d="M32 4v7" stroke="#2ee6ff" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="32" cy="4" r="3.4" fill="#ff4f9a"/>
+            <rect x="10" y="15" width="44" height="38" rx="11" fill="url(#brandSteel)" stroke="#07111c" stroke-width="3"/>
+            <rect x="5" y="27" width="7" height="17" rx="3.5" fill="#2ee6ff" stroke="#07111c" stroke-width="2"/>
+            <rect x="52" y="27" width="7" height="17" rx="3.5" fill="#ff4f9a" stroke="#07111c" stroke-width="2"/>
+            <rect x="18" y="26" width="10" height="12" rx="4" fill="#06111d"/>
+            <rect x="36" y="26" width="10" height="12" rx="4" fill="#06111d"/>
+            <circle cx="21" cy="29" r="1.8" fill="#7df6ff"/>
+            <circle cx="39" cy="29" r="1.8" fill="#7df6ff"/>
+            <rect x="24" y="43" width="16" height="4" rx="2" fill="#06111d"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-kicker">SORTING DIVISION · SHIFT 045</span>
+          <h1>ROBOT <span>FACTORY</span></h1>
+        </div>
+      </div>
+
+      <div class="hud">
+        <div class="stat">
+          <span class="stat-label">SCORE</span>
+          <strong class="stat-value" id="score">0</strong>
+        </div>
+        <div class="stat best">
+          <span class="stat-label">BEST</span>
+          <strong class="stat-value" id="best">0</strong>
+        </div>
+        <div class="stat timer" id="timerStat">
+          <span class="stat-label">TIME</span>
+          <strong class="stat-value" id="time">45</strong>
+          <span class="timer-track"><i id="timerBar"></i></span>
+        </div>
+      </div>
+    </header>
+
+    <main class="game">
+      <section class="rule-bar" id="ruleBar" aria-live="polite">
+        <div class="rule-copy">
+          <span class="rule-kicker">CURRENT ORDER</span>
+          <div class="rule-title">
+            <span class="rule-icon" id="ruleIcon"></span>
+            <h2 id="ruleName">COLOR</h2>
+          </div>
+        </div>
+        <p class="rule-hint" id="ruleHint">Match the robot&rsquo;s body color to a machine.</p>
+        <div class="rule-clock">
+          <div class="rule-clock-top">
+            <span id="ruleClockLabel">NEXT ORDER</span>
+            <b id="ruleClock">10s</b>
+          </div>
+          <span class="rule-track"><i id="ruleBarFill"></i></span>
+        </div>
+      </section>
+
+      <section class="stage" id="stage" aria-label="Conveyor belt">
+        <div class="stage-grid" aria-hidden="true"></div>
+        <div class="stage-sign"><span class="live-dot"></span>SORTING BAY 07<span class="sign-meta">CONVEYOR LIVE</span></div>
+
+        <div class="gear-deco gear-1" aria-hidden="true">
+          <svg viewBox="0 0 100 100"><path d="M50 6l7 10 12-2 5 11 12 4v13l10 7-6 11 3 12-11 6-3 12H67l-8 9-11-7-12 3-6-11-12-3-1-13L7 60l6-11-3-12 11-6 3-13h13L50 6z" fill="none" stroke="currentColor" stroke-width="5"/><circle cx="50" cy="50" r="17" fill="none" stroke="currentColor" stroke-width="5"/></svg>
+        </div>
+        <div class="gear-deco gear-2" aria-hidden="true">
+          <svg viewBox="0 0 100 100"><path d="M50 6l7 10 12-2 5 11 12 4v13l10 7-6 11 3 12-11 6-3 12H67l-8 9-11-7-12 3-6-11-12-3-1-13L7 60l6-11-3-12 11-6 3-13h13L50 6z" fill="none" stroke="currentColor" stroke-width="5"/><circle cx="50" cy="50" r="17" fill="none" stroke="currentColor" stroke-width="5"/></svg>
+        </div>
+
+        <div class="combo-pill" id="comboPill" aria-label="Combo">
+          <span class="combo-label">COMBO</span>
+          <b id="comboText">×1</b>
+          <span class="combo-pips" id="comboPips" aria-hidden="true"></span>
+        </div>
+
+        <p class="stage-prompt" id="stagePrompt">SORT THE GLOWING BOT <span aria-hidden="true">→</span></p>
+
+        <div class="drop-chute" aria-hidden="true"><span>DROP</span><span>ZONE</span></div>
+        <div class="scan-beam" id="scanBeam" aria-hidden="true"></div>
+        <div class="object-layer" id="objectLayer"></div>
+
+        <div class="belt-wrap" aria-hidden="true">
+          <div class="belt-rail top"></div>
+          <div class="belt-surface" id="beltSurface"></div>
+          <div class="belt-rail bottom"></div>
+          <div class="belt-roller left"></div>
+          <div class="belt-roller right"></div>
+        </div>
+        <div class="stage-floor" aria-hidden="true"></div>
+
+        <div class="announce-layer" id="announceLayer" aria-hidden="true"></div>
+        <div class="effect-layer" id="effectLayer" aria-hidden="true"></div>
+        <div class="screen-flash" id="screenFlash" aria-hidden="true"></div>
+      </section>
+
+      <section class="machines" aria-label="Sorting machines">
+        <div class="machines-head">
+          <span class="machines-title">SORTING MACHINES</span>
+          <span class="machines-line"></span>
+          <span class="machines-hint">TAP A MACHINE · KEYS 1–4</span>
+        </div>
+        <div class="machine-row" id="machineRow"></div>
+      </section>
+    </main>
+
+    <button class="sound-btn" id="muteBtn" type="button" aria-label="Mute sound" aria-pressed="false"></button>
+
+    <div class="overlay start-overlay" id="startScreen">
+      <div class="overlay-panel start-panel">
+        <div class="logo-bot" aria-hidden="true">
+          <svg viewBox="0 0 200 200">
+            <defs>
+              <linearGradient id="logoSteel" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#f0f8ff"/>
+                <stop offset="1" stop-color="#8fa6c1"/>
+              </linearGradient>
+            </defs>
+            <circle cx="100" cy="100" r="88" fill="rgba(46,230,255,.06)" stroke="rgba(46,230,255,.22)" stroke-width="2" stroke-dasharray="5 9"/>
+            <circle cx="100" cy="100" r="70" fill="rgba(7,17,28,.9)" stroke="rgba(255,79,154,.25)" stroke-width="2"/>
+            <path d="M100 28v14" stroke="#2ee6ff" stroke-width="5" stroke-linecap="round"/>
+            <circle cx="100" cy="26" r="7" fill="#ff4f9a"/>
+            <rect x="49" y="57" width="102" height="88" rx="28" fill="url(#logoSteel)" stroke="#07111c" stroke-width="6"/>
+            <rect x="36" y="85" width="14" height="36" rx="7" fill="#2ee6ff" stroke="#07111c" stroke-width="4"/>
+            <rect x="150" y="85" width="14" height="36" rx="7" fill="#ff4f9a" stroke="#07111c" stroke-width="4"/>
+            <rect x="68" y="88" width="25" height="27" rx="9" fill="#06111d"/>
+            <rect x="107" y="88" width="25" height="27" rx="9" fill="#06111d"/>
+            <circle cx="76" cy="96" r="4" fill="#7df6ff"/>
+            <circle cx="115" cy="96" r="4" fill="#7df6ff"/>
+            <rect x="83" y="122" width="34" height="7" rx="3.5" fill="#06111d"/>
+            <circle cx="66" cy="64" r="4" fill="#9dff3d"/>
+            <circle cx="134" cy="64" r="4" fill="#ffbe2e"/>
+          </svg>
+        </div>
+
+        <span class="eyebrow">A 45-SECOND ARCADE SHIFT</span>
+        <h2 class="game-logo">ROBOT <span>FACTORY</span></h2>
+        <p class="tagline">Read the order. Match the glowing bot. Keep the line moving.</p>
+
+        <div class="how">
+          <div class="how-item">
+            <b>01</b>
+            <strong>READ THE ORDER</strong>
+            <span>Sort by color, shape, or type. The rule flips every 10 seconds.</span>
+          </div>
+          <div class="how-item">
+            <b>02</b>
+            <strong>MATCH THE BOT</strong>
+            <span>Tap the machine that matches the glowing bot before it drops.</span>
+          </div>
+          <div class="how-item">
+            <b>03</b>
+            <strong>BUILD A COMBO</strong>
+            <span>Chain 3 correct sorts to raise your multiplier. Don&rsquo;t miss.</span>
+          </div>
+        </div>
+
+        <button class="big-btn" id="startBtn" type="button">
+          <span>START SHIFT</span>
+          <kbd>ENTER</kbd>
+        </button>
+
+        <div class="start-foot">
+          <span>PERSONAL BEST</span>
+          <strong id="menuBest">0</strong>
+          <span class="foot-dot">•</span>
+          <span>45 SECONDS</span>
+          <span class="foot-dot">•</span>
+          <span>+10 / −5</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay over-overlay is-hidden" id="gameOverScreen" aria-hidden="true">
+      <div class="overlay-panel over-panel">
+        <span class="eyebrow" id="overEyebrow">SHIFT COMPLETE</span>
+        <h2 class="over-title" id="overTitle">LINE HALTED</h2>
+
+        <div class="final-score">
+          <span>FINAL SCORE</span>
+          <strong id="finalScore">0</strong>
+          <em id="newBest" hidden>★ NEW PERSONAL BEST ★</em>
+        </div>
+
+        <div class="result-grid">
+          <div><span>BEST COMBO</span><b id="finalCombo">×1</b></div>
+          <div><span>ACCURACY</span><b id="finalAccuracy">0%</b></div>
+          <div><span>SORTED</span><b id="finalSorted">0</b></div>
+          <div><span>MISSED</span><b id="finalMissed">0</b></div>
+        </div>
+
+        <div class="best-line">PERSONAL BEST <strong id="finalBest">0</strong></div>
+
+        <div class="button-row">
+          <button class="big-btn" id="replayBtn" type="button">
+            <span>RUN IT BACK</span>
+            <kbd>ENTER</kbd>
+          </button>
+          <button class="ghost-btn" id="menuBtn" type="button">MAIN MENU</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="audio.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
