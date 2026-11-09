@@ -380,6 +380,11 @@
   font-size: 1.3em;
 }
 
+.best-sep {
+  margin: 0 5px;
+  color: rgba(130, 153, 178, 0.45);
+}
+
 .button-row {
   display: flex;
   align-items: center;
@@ -581,11 +586,25 @@
     display: none;
   }
 
-  .stage-prompt {
-    top: 10px;
-    font-size: 6px;
-    letter-spacing: 1.2px;
-    padding: 3px 8px;
+  .core-meter {
+    top: 9px;
+    height: 22px;
+    padding: 0 7px;
+    gap: 5px;
+  }
+
+  .core-label {
+    font-size: 5px;
+    letter-spacing: 1px;
+  }
+
+  .core-cells i {
+    width: 7px;
+    height: 9px;
+  }
+
+  .core-value {
+    font-size: 7px;
   }
 
   .combo-pill {
@@ -852,8 +871,22 @@
     flex-basis: 64px;
   }
 
-  .stage-prompt {
+  .core-label {
     display: none;
+  }
+
+  .core-meter {
+    gap: 4px;
+    padding: 0 6px;
+  }
+
+  .core-cells {
+    gap: 2px;
+  }
+
+  .core-cells i {
+    width: 6px;
+    height: 9px;
   }
 
   .combo-pill {
@@ -913,8 +946,11 @@
     bottom: 60px;
   }
 
-  .stage-sign,
-  .stage-prompt {
+  .stage-sign {
+    top: 7px;
+  }
+
+  .core-meter {
     top: 7px;
   }
 

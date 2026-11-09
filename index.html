@@ -84,6 +84,7 @@
 
       <section class="stage" id="stage" aria-label="Conveyor belt">
         <div class="stage-grid" aria-hidden="true"></div>
+        <div class="overdrive-rays" aria-hidden="true"></div>
         <div class="stage-sign"><span class="live-dot"></span>SORTING BAY 07<span class="sign-meta">CONVEYOR LIVE</span></div>
 
         <div class="gear-deco gear-1" aria-hidden="true">
@@ -99,7 +100,11 @@
           <span class="combo-pips" id="comboPips" aria-hidden="true"></span>
         </div>
 
-        <p class="stage-prompt" id="stagePrompt">SORT THE GLOWING BOT <span aria-hidden="true">→</span></p>
+        <div class="core-meter" id="coreMeter" aria-label="Overdrive core">
+          <span class="core-label" id="coreLabel">CORE</span>
+          <span class="core-cells" id="coreCells" aria-hidden="true"></span>
+          <b class="core-value" id="coreValue">0/6</b>
+        </div>
 
         <div class="drop-chute" aria-hidden="true"><span>DROP</span><span>ZONE</span></div>
         <div class="scan-beam" id="scanBeam" aria-hidden="true"></div>
@@ -175,8 +180,8 @@
           </div>
           <div class="how-item">
             <b>03</b>
-            <strong>BUILD A COMBO</strong>
-            <span>Chain 3 correct sorts to raise your multiplier. Don&rsquo;t miss.</span>
+            <strong>CHAIN &amp; CHARGE</strong>
+            <span>Chain 3 sorts to raise your multiplier. Six clean sorts trigger DOUBLE POINTS.</span>
           </div>
         </div>
 
@@ -214,7 +219,11 @@
           <div><span>MISSED</span><b id="finalMissed">0</b></div>
         </div>
 
-        <div class="best-line">PERSONAL BEST <strong id="finalBest">0</strong></div>
+        <div class="best-line">
+          PERSONAL BEST <strong id="finalBest">0</strong>
+          <span class="best-sep">·</span>
+          OVERDRIVES <strong id="finalOverdrives">0</strong>
+        </div>
 
         <div class="button-row">
           <button class="big-btn" id="replayBtn" type="button">

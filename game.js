@@ -57,6 +57,12 @@
     baseCrossTime: 5.6,
     fastCrossTime: 2.75,
     spawnSpacing: 0.46,
+    coreCells: 6,
+    coreCharge: 1,
+    coreDrain: 2,
+    overdriveDuration: 6000,
+    overdriveTimeLoss: 1200,
+    overdriveMultiplier: 2,
   };
 
   const STORE_HIGH = "robotFactory.highScore.v1";
@@ -88,7 +94,10 @@
     comboPill: $("#comboPill"),
     comboText: $("#comboText"),
     comboPips: $("#comboPips"),
-    stagePrompt: $("#stagePrompt"),
+    coreMeter: $("#coreMeter"),
+    coreLabel: $("#coreLabel"),
+    coreCells: $("#coreCells"),
+    coreValue: $("#coreValue"),
     announceLayer: $("#announceLayer"),
     effectLayer: $("#effectLayer"),
     screenFlash: $("#screenFlash"),
@@ -107,6 +116,7 @@
     finalMissed: $("#finalMissed"),
     newBest: $("#newBest"),
     finalBest: $("#finalBest"),
+    finalOverdrives: $("#finalOverdrives"),
     overEyebrow: $("#overEyebrow"),
     overTitle: $("#overTitle"),
   };
@@ -140,6 +150,10 @@
     lastSecond: -1,
     overlayTimer: 0,
     recordTimer: 0,
+    core: 0,
+    overdrive: false,
+    overdriveTime: 0,
+    overdriveCount: 0,
     muted: readNumber(STORE_MUTE, 0) === 1,
   };
 
@@ -152,6 +166,7 @@
   function init() {
     buildMachines();
     buildComboPips();
+    buildCoreCells();
     updateMuteUI();
     state.muted = readNumber(STORE_MUTE, 0) === 1;
     sound.setMuted(state.muted);
@@ -242,6 +257,10 @@
     dom.comboPips.innerHTML = Array.from({ length: 5 }, () => "<i></i>").join("");
   }
 
+  function buildCoreCells() {
+    dom.coreCells.innerHTML = Array.from({ length: CONFIG.coreCells }, () => "<i></i>").join("");
+  }
+
   function iconSvg(name) {
     return `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON_PATHS[name] || ""}</svg>`;
   }
@@ -328,11 +347,11 @@
     dom.startScreen.setAttribute("aria-hidden", "true");
     dom.gameOverScreen.classList.add("is-hidden");
     dom.gameOverScreen.setAttribute("aria-hidden", "true");
-    dom.stagePrompt.classList.remove("is-hidden");
 
     setRule("color", false, false);
     updateHUD();
     updateCombo();
+    updateCoreUI();
     updateTimerDisplay();
     updateRuleClock();
 
@@ -362,6 +381,10 @@
     state.spawnTimer = 0;
     state.crossTime = CONFIG.baseCrossTime;
     state.lastTs = 0;
+    state.core = 0;
+    state.overdrive = false;
+    state.overdriveTime = 0;
+    state.overdriveCount = 0;
 
     state.objects.forEach((bot) => bot.el.remove());
     state.objects = [];
@@ -369,7 +392,8 @@
     dom.effectLayer.replaceChildren();
     dom.announceLayer.replaceChildren();
     dom.scanBeam.classList.remove("is-live");
-    dom.stagePrompt.classList.remove("is-hidden");
+    dom.app.classList.remove("is-overdrive");
+    dom.stage.classList.remove("is-overdrive");
     dom.timerStat.classList.remove("urgent", "critical");
     machineButtons.forEach((button) => button.classList.remove("accept", "reject", "show-correct"));
     dom.beltSurface.style.setProperty("--belt-duration", "0.9s");
@@ -377,6 +401,7 @@
 
     updateHUD();
     updateCombo();
+    updateCoreUI();
     updateTimerDisplay();
     updateRuleClock();
     dom.time.textContent = "45";
@@ -410,7 +435,7 @@
     dom.timerBar.style.width = "0%";
     dom.timerStat.classList.add("critical");
     dom.scanBeam.classList.remove("is-live");
-    hideStagePrompt();
+    finishOverdrive(true);
     state.objects.forEach((bot) => bot.el.classList.remove("is-active"));
 
     sound.gameOver();
@@ -441,6 +466,7 @@
     dom.finalSorted.textContent = String(state.sorted);
     dom.finalMissed.textContent = String(state.missed);
     dom.finalBest.textContent = String(state.highScore);
+    dom.finalOverdrives.textContent = String(state.overdriveCount);
     dom.newBest.hidden = !isRecord;
 
     dom.gameOverScreen.classList.remove("is-hidden");
@@ -488,6 +514,15 @@
 
     updateTimerDisplay();
     updateRuleClock();
+
+    if (state.overdrive) {
+      state.overdriveTime -= dt * 1000;
+      if (state.overdriveTime <= 0) {
+        finishOverdrive();
+      } else {
+        updateCoreUI();
+      }
+    }
 
     state.spawnTimer -= dt;
     if (state.spawnTimer <= 0) {
@@ -626,16 +661,20 @@
     const expected = expectedMachine(active);
     if (expected === index) {
       const previousMultiplier = state.multiplier;
+      const overdriveActive = state.overdrive;
       state.streak += 1;
       state.bestStreak = Math.max(state.bestStreak, state.streak);
       state.multiplier = multiplierFor(state.streak);
-      const gain = 10 * state.multiplier;
+      const baseGain = 10 * state.multiplier;
+      const gain = overdriveActive ? baseGain * CONFIG.overdriveMultiplier : baseGain;
       state.score += gain;
       state.sorted += 1;
 
+      if (!overdriveActive) chargeCore(CONFIG.coreCharge);
+
       updateHUD(true);
       updateCombo();
-      finishCorrect(active, index, gain, previousMultiplier);
+      finishCorrect(active, index, gain, previousMultiplier, overdriveActive);
       sound.correct(state.multiplier);
 
       if (state.multiplier > previousMultiplier) {
@@ -647,6 +686,7 @@
       state.multiplier = 1;
       state.wrong += 1;
       state.score = Math.max(0, state.score - 5);
+      drainCore(CONFIG.coreDrain);
       updateHUD(false);
       updateCombo();
       finishWrong(active, index, expected);
@@ -655,7 +695,6 @@
       flashScreen();
     }
 
-    hideStagePrompt();
   }
 
   function expectedMachine(bot) {
@@ -670,15 +709,18 @@
     if (state.activeId === bot.id) state.activeId = null;
   }
 
-  function finishCorrect(bot, machineIndex, gain, previousMultiplier) {
+  function finishCorrect(bot, machineIndex, gain, previousMultiplier, overdriveActive) {
     const rect = bot.el.getBoundingClientRect();
     removeFromField(bot);
     createFlyClone(bot, rect, machineIndex);
     bot.el.remove();
 
     floatTextAtRect(rect, `+${gain}`, "good");
+    if (overdriveActive) {
+      floatTextAtRect(rect, `×${CONFIG.overdriveMultiplier} OVERDRIVE`, "overdrive", -24);
+    }
     if (state.multiplier > previousMultiplier) {
-      floatTextAtRect(rect, `COMBO ×${state.multiplier}`, "combo", -44);
+      floatTextAtRect(rect, `COMBO ×${state.multiplier}`, "combo", overdriveActive ? -66 : -44);
     }
     spawnSparks(rect.left + rect.width / 2, rect.top + rect.height * 0.45, bot.color.hex, 13);
     flashMachine(machineIndex, "accept");
@@ -706,6 +748,7 @@
     state.streak = 0;
     state.multiplier = 1;
     state.score = Math.max(0, state.score - 5);
+    drainCore(CONFIG.coreDrain);
     updateHUD(false);
     updateCombo();
 
@@ -719,7 +762,6 @@
     sound.miss();
     shakeStage();
     flashScreen();
-    hideStagePrompt();
   }
 
   /* ── Rules & HUD ──────────────────────────────────────── */
@@ -764,6 +806,100 @@
     for (let i = 0; i < pips.length; i += 1) {
       pips[i].classList.toggle("on", i < state.multiplier);
     }
+  }
+
+  function chargeCore(amount) {
+    if (state.overdrive) return;
+    state.core = Math.min(CONFIG.coreCells, state.core + amount);
+    if (state.core >= CONFIG.coreCells) {
+      activateOverdrive();
+      return;
+    }
+    updateCoreUI();
+    bumpCoreMeter();
+  }
+
+  function drainCore(amount) {
+    if (state.overdrive) {
+      state.overdriveTime = Math.max(0, state.overdriveTime - CONFIG.overdriveTimeLoss);
+      if (state.overdriveTime <= 0) finishOverdrive();
+      else updateCoreUI();
+      return;
+    }
+    if (state.core === 0) return;
+    state.core = Math.max(0, state.core - amount);
+    updateCoreUI();
+    bumpCoreMeter();
+  }
+
+  function activateOverdrive() {
+    state.core = CONFIG.coreCells;
+    state.overdrive = true;
+    state.overdriveTime = CONFIG.overdriveDuration;
+    state.overdriveCount += 1;
+
+    dom.app.classList.add("is-overdrive");
+    dom.stage.classList.add("is-overdrive");
+    updateCoreUI();
+    bumpCoreMeter();
+
+    announce(
+      "CORE OVERDRIVE",
+      `DOUBLE POINTS · ${Math.round(CONFIG.overdriveDuration / 1000)}s`,
+      "overdrive"
+    );
+    sound.overdrive();
+
+    const rect = dom.stage.getBoundingClientRect();
+    spawnSparks(rect.left + rect.width / 2, rect.top + rect.height * 0.62, "#ffbe2e", 22);
+  }
+
+  function finishOverdrive(quiet = false) {
+    const wasActive = state.overdrive;
+    state.overdrive = false;
+    state.overdriveTime = 0;
+    state.core = 0;
+    dom.app.classList.remove("is-overdrive");
+    dom.stage.classList.remove("is-overdrive");
+    updateCoreUI();
+
+    if (wasActive && !quiet) {
+      announce("OVERDRIVE END", "CORE RECHARGING", "bad");
+      sound.overdriveEnd();
+    }
+  }
+
+  function updateCoreUI() {
+    if (!dom.coreCells) return;
+    const cells = dom.coreCells.children;
+    for (let i = 0; i < cells.length; i += 1) {
+      cells[i].classList.toggle("on", i < state.core);
+    }
+    dom.coreMeter.classList.toggle("is-active", state.overdrive);
+
+    if (state.overdrive) {
+      const seconds = Math.max(0, Math.ceil(state.overdriveTime / 1000));
+      dom.coreLabel.textContent = "OVERDRIVE";
+      dom.coreValue.textContent = `×${CONFIG.overdriveMultiplier} ${seconds}s`;
+      dom.coreMeter.setAttribute(
+        "aria-label",
+        `Overdrive active, double points, ${seconds} seconds remaining`
+      );
+    } else {
+      dom.coreLabel.textContent = "CORE";
+      dom.coreValue.textContent = `${state.core}/${CONFIG.coreCells}`;
+      dom.coreMeter.setAttribute(
+        "aria-label",
+        `Overdrive core ${state.core} of ${CONFIG.coreCells}`
+      );
+    }
+  }
+
+  function bumpCoreMeter() {
+    dom.coreMeter.classList.remove("bump");
+    void dom.coreMeter.offsetWidth;
+    dom.coreMeter.classList.add("bump");
+    setTimeout(() => dom.coreMeter.classList.remove("bump"), 460);
   }
 
   function updateTimerDisplay() {
@@ -934,10 +1070,6 @@
     void dom.screenFlash.offsetWidth;
     dom.screenFlash.classList.add("flash");
     setTimeout(() => dom.screenFlash.classList.remove("flash"), 480);
-  }
-
-  function hideStagePrompt() {
-    dom.stagePrompt.classList.add("is-hidden");
   }
 
   /* ── Sound toggle ─────────────────────────────────────── */

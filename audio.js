@@ -130,6 +130,23 @@
       this.tone(base * 1.5, { type: "sine", dur: 0.16, gain: 0.09, delay: 0.08 });
     }
 
+    overdrive() {
+      if (!this.ensure()) return;
+      this.tone(130.81, { type: "sawtooth", dur: 0.5, gain: 0.12, slideTo: 1046.5 });
+      this.tone(261.63, { type: "triangle", dur: 0.22, gain: 0.14, delay: 0.06, slideTo: 523.25 });
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        this.tone(freq, { type: "square", dur: 0.1, gain: 0.06, delay: 0.3 + i * 0.06 });
+      });
+      this.noise(0.3, 0.04, 0.02);
+    }
+
+    overdriveEnd() {
+      if (!this.ensure()) return;
+      this.tone(783.99, { type: "triangle", dur: 0.24, gain: 0.11, slideTo: 392 });
+      this.tone(523.25, { type: "sine", dur: 0.3, gain: 0.08, delay: 0.06, slideTo: 261.63 });
+      this.noise(0.2, 0.035, 0.04);
+    }
+
     tick(urgent = false) {
       if (!this.ensure()) return;
       this.tone(urgent ? 1100 : 820, {
